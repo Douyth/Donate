@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    font-family: 'Sarabun', sans-serif;
+    overflow: hidden;
+    width: 600px;
+    height: 200px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 20px;
+  }
+
+  .alert-box {
+    display: none;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(30,30,45,0.95));
+    border: 1px solid rgba(0,229,160,0.4);
+    border-radius: 16px;
+    padding: 16px 20px;
+    max-width: 560px;
+    box-shadow: 0 0 30px rgba(0,229,160,0.15), 0 8px 32px rgba(0,0,0,0.5);
+    animation: slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .alert-box.show { display: flex; }
+  .alert-box.hide { animation: slideOut 0.4s ease forwards; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-40px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes slideOut {
+    from { opacity: 1; transform: translateX(0) scale(1); }
+    to   { opacity: 0; transform: translateX(-40px) scale(0.95); }
+  }
+
+  .alert-icon {
+    width: 52px; height: 52px;
+    background: rgba(0,229,160,0.15);
+    border: 1px solid rgba(0,229,160,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(0,229,160,0); }
+  }
+
+  .alert-content { flex: 1; min-width: 0; }
+
+  .alert-header {
+    font-size: 11px;
+    color: #00e5a0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .alert-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .alert-msg {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="alert-box" id="alertBox">
+  <div class="alert-icon">💜</div>
+  <div class="alert-content">
+    <div class="alert-header">✦ โดเนทใหม่!</div>
+    <div class="alert-name" id="alertName">Anonymous</div>
+    <div class="alert-msg" id="alertMsg">ขอบคุณครับ!</div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    databaseURL: "https://alert-2d2cf-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  let isFirstLoad = true;
+  const queue = [];
+  let isShowing = false;
+
+  // รอโหลดข้อมูลเก่าก่อน แล้วค่อยฟังของใหม่
+  setTimeout(() => { isFirstLoad = false; }, 3000);
+
+  onChildAdded(ref(db, 'donations'), (snapshot) => {
+    if (isFirstLoad) return;
+    const data = snapshot.val();
+    queue.push(data);
+    if (!isShowing) showNext();
+  });
+
+  function showNext() {
+    if (queue.length === 0) { isShowing = false; return; }
+    isShowing = true;
+    const data = queue.shift();
+    const box = document.getElementById('alertBox');
+    document.getElementById('alertName').textContent = data.name || 'Anonymous';
+    document.getElementById('alertMsg').textContent = data.message || '';
+    box.classList.remove('hide');
+    box.classList.add('show');
+
+    // แสดง 6 วินาทีแล้วหายไป
+    setTimeout(() => {
+      box.classList.add('hide');
+      setTimeout(() => {
+        box.classList.remove('show', 'hide');
+        setTimeout(showNext, 500);
+      }, 400);
+    }, 6000);
+  }
+</script>
+</body>
+</html>

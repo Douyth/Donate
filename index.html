@@ -395,7 +395,7 @@
       </div>
     </div>
 
-    <button class="submit-btn" onclick="submitDonate()">
+    <button class="submit-btn" id="submit-btn" onclick="submitDonate()">
       ส่งโดเนท 💜
     </button>
 
@@ -412,68 +412,53 @@
 
 </div>
 
-<script>
-function switchTab(key, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('panel-' + key).classList.add('active');
-}
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-function copyText(id, btn) {
-  const txt = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(txt).catch(() => {});
-  const orig = btn.textContent;
-  btn.textContent = '✓ คัดลอก';
-  setTimeout(() => btn.textContent = orig, 1500);
-}
-
-function previewSlip(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('slip-img').src = e.target.result;
-    document.getElementById('slip-name').textContent = file.name;
-    document.getElementById('slip-preview').style.display = 'block';
-    document.getElementById('slip-drop').style.display = 'none';
+  const firebaseConfig = {
+    databaseURL: "https://alert-2d2cf-default-rtdb.asia-southeast1.firebasedatabase.app"
   };
-  reader.readAsDataURL(file);
-}
 
-function removeSlip() {
-  document.getElementById('slip-input').value = '';
-  document.getElementById('slip-preview').style.display = 'none';
-  document.getElementById('slip-drop').style.display = 'block';
-}
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-function submitDonate() {
-  const msg = document.getElementById('donor-msg').value.trim();
-  if (!msg) {
-    document.getElementById('donor-msg').focus();
-    document.getElementById('donor-msg').style.borderColor = '#e24b4a';
-    setTimeout(() => document.getElementById('donor-msg').style.borderColor = '', 1500);
-    return;
-  }
-  const name = document.getElementById('donor-name').value.trim() || 'Anonymous';
-  document.getElementById('main-form').style.display = 'none';
-  document.getElementById('success').style.display = 'block';
-  document.getElementById('success-msg').innerHTML =
-    `<strong>${name}</strong> ส่งข้อความเรียบร้อยแล้ว<br>รอดู Alert ในสตรีมได้เลย! 🎉`;
-  let s = 5;
-  const t = setInterval(() => {
-    s--;
-    document.getElementById('countdown').textContent = s;
-    if (s <= 0) {
-      clearInterval(t);
-      document.getElementById('main-form').style.display = 'block';
-      document.getElementById('success').style.display = 'none';
-      document.getElementById('donor-name').value = '';
-      document.getElementById('donor-msg').value = '';
-      removeSlip();
+  window.submitDonate = async function() {
+    const msg = document.getElementById('donor-msg').value.trim();
+    if (!msg) {
+      document.getElementById('donor-msg').style.borderColor = '#e24b4a';
+      setTimeout(() => document.getElementById('donor-msg').style.borderColor = '', 1500);
+      return;
     }
-  }, 1000);
-}
+    const name = document.getElementById('donor-name').value.trim() || 'Anonymous';
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง...';
+
+    try {
+      await push(ref(db, 'donations'), {
+        name: name,
+        message: msg,
+        timestamp: Date.now()
+      });
+      // แสดง success
+      document.getElementById('main-form').style.display = 'none';
+      document.getElementById('success').style.display = 'block';
+      let s = 5;
+      const t = setInterval(() => {
+        s--;
+        document.getElementById('countdown').textContent = s;
+        if (s <= 0) {
+          clearInterval(t);
+          location.reload();
+        }
+      }, 1000);
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'ส่งโดเนท 💜';
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+  };
 </script>
 </body>
 </html>

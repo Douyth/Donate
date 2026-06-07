@@ -8,24 +8,25 @@
     background: transparent;
     font-family: 'Sarabun', sans-serif;
     overflow: hidden;
-    width: 600px;
-    height: 200px;
+    width: 800px;
+    height: 250px;
     display: flex;
     align-items: flex-end;
     justify-content: flex-start;
-    padding: 20px;
+    padding: 24px;
   }
 
   .alert-box {
     display: none;
     align-items: center;
-    gap: 16px;
-    background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(30,30,45,0.95));
-    border: 1px solid rgba(0,229,160,0.4);
-    border-radius: 16px;
-    padding: 16px 20px;
-    max-width: 560px;
-    box-shadow: 0 0 30px rgba(0,229,160,0.15), 0 8px 32px rgba(0,0,0,0.5);
+    gap: 20px;
+    background: linear-gradient(135deg, rgba(20,20,30,0.97), rgba(30,30,45,0.97));
+    border: 1.5px solid rgba(0,229,160,0.5);
+    border-radius: 20px;
+    padding: 20px 28px;
+    max-width: 750px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(0,229,160,0.2), 0 12px 40px rgba(0,0,0,0.6);
     animation: slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
@@ -33,60 +34,78 @@
   .alert-box.hide { animation: slideOut 0.4s ease forwards; }
 
   @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-40px) scale(0.95); }
+    from { opacity: 0; transform: translateX(-50px) scale(0.93); }
     to   { opacity: 1; transform: translateX(0) scale(1); }
   }
   @keyframes slideOut {
     from { opacity: 1; transform: translateX(0) scale(1); }
-    to   { opacity: 0; transform: translateX(-40px) scale(0.95); }
+    to   { opacity: 0; transform: translateX(-50px) scale(0.93); }
   }
 
   .alert-icon {
-    width: 52px; height: 52px;
+    width: 64px; height: 64px;
     background: rgba(0,229,160,0.15);
-    border: 1px solid rgba(0,229,160,0.3);
+    border: 1.5px solid rgba(0,229,160,0.35);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
+    font-size: 30px;
     flex-shrink: 0;
     animation: pulse 2s ease infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.3); }
-    50% { box-shadow: 0 0 0 8px rgba(0,229,160,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.35); }
+    50% { box-shadow: 0 0 0 10px rgba(0,229,160,0); }
   }
 
   .alert-content { flex: 1; min-width: 0; }
 
   .alert-header {
-    font-size: 11px;
+    font-size: 12px;
     color: #00e5a0;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    margin-bottom: 4px;
-    font-weight: 600;
+    margin-bottom: 6px;
+    font-weight: 700;
   }
 
   .alert-name {
-    font-size: 20px;
+    font-size: 26px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .alert-msg {
-    font-size: 14px;
-    color: rgba(255,255,255,0.7);
+    font-size: 16px;
+    color: rgba(255,255,255,0.75);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .alert-amount {
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .amount-value {
+    font-size: 30px;
+    font-weight: 800;
+    color: #00e5a0;
+    line-height: 1;
+  }
+
+  .amount-unit {
+    font-size: 13px;
+    color: rgba(0,229,160,0.7);
+    margin-top: 2px;
+  }
 </style>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -97,11 +116,15 @@
     <div class="alert-name" id="alertName">Anonymous</div>
     <div class="alert-msg" id="alertMsg">ขอบคุณครับ!</div>
   </div>
+  <div class="alert-amount">
+    <div class="amount-value" id="alertAmount">0</div>
+    <div class="amount-unit">บาท</div>
+  </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     databaseURL: "https://alert-2d2cf-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -114,7 +137,6 @@
   const queue = [];
   let isShowing = false;
 
-  // รอโหลดข้อมูลเก่าก่อน แล้วค่อยฟังของใหม่
   setTimeout(() => { isFirstLoad = false; }, 3000);
 
   onChildAdded(ref(db, 'donations'), (snapshot) => {
@@ -131,17 +153,17 @@
     const box = document.getElementById('alertBox');
     document.getElementById('alertName').textContent = data.name || 'Anonymous';
     document.getElementById('alertMsg').textContent = data.message || '';
+    document.getElementById('alertAmount').textContent = data.amount ? Number(data.amount).toLocaleString() : '0';
     box.classList.remove('hide');
     box.classList.add('show');
 
-    // แสดง 6 วินาทีแล้วหายไป
     setTimeout(() => {
       box.classList.add('hide');
       setTimeout(() => {
         box.classList.remove('show', 'hide');
         setTimeout(showNext, 500);
       }, 400);
-    }, 6000);
+    }, 7000);
   }
 </script>
 </body>
